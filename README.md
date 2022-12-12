@@ -1,28 +1,36 @@
 
-# Ensure the path to the custom Ansible module is exported
+#### Ensure the path to the custom Ansible module is exported
 export ANSIBLE_LIBRARY="${pwd}/rhsso-automation-capabilities"
 
-# create python venv
+
+#### create python venv
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install ansible
 pip install -r requirements-dev.txt
 
-# Configurations to run the Ansible playbook
 
-# The section to get the RHSSO URL and credentials set
+#### Configurations to run the Ansible playbook
+
+
+#### The section to get the RHSSO URL and credentials set
+
+```  
   vars:
     kc: 
       url: https://sso-dre002ng-dev.apps.sandbox.x8i5.p1.openshiftapps.com/
       user: admin
       pass: admin
-
+```
 # Set the path to the Realm data on disk
+```
   tasks:
     - name: Full path to data source
       set_fact:
         src_dp: "{{ playbook_dir }}/keycloak-fetch-bot/output/keycloak/ci0-realm/"
-
+```
 # Run the playbook
+```
 ansible-playbok main.yaml
+```
