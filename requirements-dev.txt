@@ -1,3 +1,7 @@
-kcapi>=1.0.33
-keycloak-exporter-bot==0.0.1
+kcapi==1.0.34
+keycloak-exporter-bot==0.0.2
 ansible_core==2.14.1
+
+# keycloak-fetch-bot is not needed for this collection,
+# But if you need to run kcfetcher command, use this version
+keycloak-fetch-bot==0.0.4
