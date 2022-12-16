@@ -8,6 +8,8 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+from setuptools.glob import glob
+
 DOCUMENTATION = r"""
 module: api
 
@@ -67,7 +69,7 @@ records:
 import os
 from ansible.module_utils.basic import AnsibleModule
 from kcapi import Keycloak, OpenID
-from kcloader.resource import RealmResource
+from kcloader.resource import RealmResource, SingleCustomAuthenticationResource
 
 # from ..module_utils import errors, arguments
 
@@ -85,6 +87,7 @@ def run(module):
     server_instance = module.params["server_instance"]
     keycloak_api, master_realm = get_kc(server_instance)
 
+    # load realm
     realm_filepath = os.path.join(datadir, f"{realm_name}/{realm_name}.json")  # often correct
     realm_res = RealmResource({
         'path': realm_filepath,
@@ -94,8 +97,21 @@ def run(module):
         'realm': realm_name,
     })
     state = realm_res.publish(minimal_representation=True)
+
     # TODO load auth flows and roles, then
-    # state = state and realm_res.publish()
+    # load all auth flows
+    auth_flow_filepaths = glob(os.path.join(datadir, f"{realm_name}/authentication/flows/*/*.json"))
+    for auth_flow_filepath in auth_flow_filepaths:
+        auth_flow_res = SingleCustomAuthenticationResource({
+            'path': auth_flow_filepath,
+            # 'name': 'authentication',
+            # 'id': 'alias',
+            'keycloak_api': keycloak_api,
+            'realm': realm_name,
+        })
+        creation_state = auth_flow_res.publish()
+        state = state and creation_state
+
     return True, "TODO-some-data"
 
 

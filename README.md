@@ -35,9 +35,9 @@ pip install -r requirements-dev.txt
 
 #### Run the playbook
 ```
-ansible-playbok main.yaml
+ansible-playbook main.yaml
 
 # local test server
 docker run -it -p 8080:80 -p 8443:443 -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin quay.io/keycloak/keycloak:9.0.3
-ansible-playbok playbooks/test_import_realm.yml
+ansible-playbook playbooks/test_import_realm.yml
 ```
