@@ -69,7 +69,7 @@ records:
 import os
 from ansible.module_utils.basic import AnsibleModule
 from kcapi import Keycloak, OpenID
-from kcloader.resource import RealmResource, SingleCustomAuthenticationResource
+from kcloader.resource import RealmResource, SingleCustomAuthenticationResource, IdentityProviderManager
 
 # from ..module_utils import errors, arguments
 
@@ -112,7 +112,12 @@ def run(module):
         creation_state = auth_flow_res.publish()
         state = state and creation_state
 
-    return True, "TODO-some-data"
+    # load identity providers
+    idp_manager = IdentityProviderManager(keycloak_api, realm_name, datadir)
+    creation_state = idp_manager.publish()
+
+    module.warn("returned changed/created/deleted status describes only IdentityProviders")
+    return creation_state, "TODO-some-data"
 
 
 def main():
