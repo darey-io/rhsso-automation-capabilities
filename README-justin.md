@@ -22,8 +22,8 @@ pip install -r requirements-dev.txt
 
 # Import data
 
-A sample dataset is already available in `tests/data/kcfetcher-0.0.4/`.
-It was created with kcfetcher tag 0.0.4.
+A sample dataset is already available in `tests/data/kcfetcher-0.0.6/`.
+It was created with kcfetcher tag 0.0.6.
 
 A sample playbook to import this dataset is at `playbooks/test_import_realm.yml`.
 The destination SSO IP and credentials are hardcoded in it - change them if needed.
