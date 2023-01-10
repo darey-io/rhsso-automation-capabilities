@@ -69,7 +69,8 @@ records:
 import os
 from ansible.module_utils.basic import AnsibleModule
 from kcapi import Keycloak, OpenID
-from kcloader.resource import RealmResource, SingleCustomAuthenticationResource, IdentityProviderManager
+from kcloader.resource import RealmResource, SingleCustomAuthenticationResource, IdentityProviderManager, \
+    ClientManager
 
 # from ..module_utils import errors, arguments
 
@@ -86,6 +87,9 @@ def run(module):
     realm_name = module.params["realm"]
     server_instance = module.params["server_instance"]
     keycloak_api, master_realm = get_kc(server_instance)
+
+    # --------------------------------------------
+    # Pass 1 - create minimal realm, simple roles, etc
 
     # load realm
     realm_filepath = os.path.join(datadir, f"{realm_name}/{realm_name}.json")  # often correct
@@ -110,14 +114,25 @@ def run(module):
             'realm': realm_name,
         })
         creation_state = auth_flow_res.publish()
-        state = state and creation_state
+        state = state or creation_state
 
     # load identity providers
     idp_manager = IdentityProviderManager(keycloak_api, realm_name, datadir)
     creation_state = idp_manager.publish()
+    state = state or creation_state
+
+    client_manager = ClientManager(keycloak_api, realm_name, datadir)
+    creation_state = client_manager.publish(include_composite=False)
+    state = state or creation_state
+
+    # --------------------------------------------
+    # Pass 2, resolve circular dependencies
+    # Setup composite roles
+    creation_state = client_manager.publish()
+    state = state or creation_state
 
     module.warn("returned changed/created/deleted status describes only IdentityProviders")
-    return creation_state, "TODO-some-data"
+    return state, "TODO-some-data"
 
 
 def main():
