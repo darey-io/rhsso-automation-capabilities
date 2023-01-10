@@ -70,7 +70,7 @@ import os
 from ansible.module_utils.basic import AnsibleModule
 from kcapi import Keycloak, OpenID
 from kcloader.resource import RealmResource, SingleCustomAuthenticationResource, IdentityProviderManager, \
-    ClientManager
+    ClientManager, RealmRoleManager
 
 # from ..module_utils import errors, arguments
 
@@ -125,10 +125,17 @@ def run(module):
     creation_state = client_manager.publish(include_composite=False)
     state = state or creation_state
 
+    realm_roles_manager = RealmRoleManager(keycloak_api, realm_name, datadir)
+    creation_state = realm_roles_manager.publish(include_composite=False)
+    state = state or creation_state
+
     # --------------------------------------------
     # Pass 2, resolve circular dependencies
     # Setup composite roles
-    creation_state = client_manager.publish()
+    creation_state = client_manager.publish(include_composite=True)
+    state = state or creation_state
+
+    creation_state = realm_roles_manager.publish(include_composite=True)
     state = state or creation_state
 
     module.warn("returned changed/created/deleted status describes only IdentityProviders")
