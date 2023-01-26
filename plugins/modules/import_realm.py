@@ -69,8 +69,18 @@ records:
 import os
 from ansible.module_utils.basic import AnsibleModule
 from kcapi import Keycloak, OpenID
-from kcloader.resource import RealmResource, SingleCustomAuthenticationResource, IdentityProviderManager, \
-    ClientManager, RealmRoleManager
+from kcloader.resource import \
+    RealmResource, \
+    AuthenticationFlowManager, \
+    IdentityProviderManager, \
+    ClientManager, \
+    RealmRoleManager, \
+    UserFederationManager, \
+    ClientScopeManager, \
+    DefaultDefaultClientScopeManager, \
+    DefaultOptionalClientScopeManager
+from kcloader.resource.group_resource import GroupManager
+
 
 # from ..module_utils import errors, arguments
 
@@ -88,10 +98,6 @@ def run(module):
     server_instance = module.params["server_instance"]
     keycloak_api, master_realm = get_kc(server_instance)
 
-    # --------------------------------------------
-    # Pass 1 - create minimal realm, simple roles, etc
-
-    # load realm
     realm_filepath = os.path.join(datadir, f"{realm_name}/{realm_name}.json")  # often correct
     realm_res = RealmResource({
         'path': realm_filepath,
@@ -100,46 +106,43 @@ def run(module):
         'keycloak_api': keycloak_api,
         'realm': realm_name,
     })
-    state = realm_res.publish(minimal_representation=True)
+    # create realm before mangers
+    states = list()
+    states.append(realm_res.publish(minimal_representation=True))
 
-    # TODO load auth flows and roles, then
-    # load all auth flows
-    auth_flow_filepaths = glob(os.path.join(datadir, f"{realm_name}/authentication/flows/*/*.json"))
-    for auth_flow_filepath in auth_flow_filepaths:
-        auth_flow_res = SingleCustomAuthenticationResource({
-            'path': auth_flow_filepath,
-            # 'name': 'authentication',
-            # 'id': 'alias',
-            'keycloak_api': keycloak_api,
-            'realm': realm_name,
-        })
-        creation_state = auth_flow_res.publish()
-        state = state or creation_state
-
-    # load identity providers
+    auth_manager = AuthenticationFlowManager(keycloak_api, realm_name, datadir)
     idp_manager = IdentityProviderManager(keycloak_api, realm_name, datadir)
-    creation_state = idp_manager.publish()
-    state = state or creation_state
-
+    uf_manager = UserFederationManager(keycloak_api, realm_name, datadir)
+    group_manager = GroupManager(keycloak_api, realm_name, datadir)
     client_manager = ClientManager(keycloak_api, realm_name, datadir)
-    creation_state = client_manager.publish(include_composite=False)
-    state = state or creation_state
-
-    realm_roles_manager = RealmRoleManager(keycloak_api, realm_name, datadir)
-    creation_state = realm_roles_manager.publish(include_composite=False)
-    state = state or creation_state
+    realm_role_manager = RealmRoleManager(keycloak_api, realm_name, datadir)
+    client_scope_manager = ClientScopeManager(keycloak_api, realm_name, datadir)
+    default_default_client_scope_manager = DefaultDefaultClientScopeManager(keycloak_api, realm_name, datadir)
+    default_optional_client_scope_manager = DefaultOptionalClientScopeManager(keycloak_api, realm_name, datadir)
 
     # --------------------------------------------
+    # Pass 1 - create minimal realm, simple roles, etc
+    states.append(auth_manager.publish())
+    states.append(idp_manager.publish())
+    states.append(uf_manager.publish())
+    states.append(realm_role_manager.publish(include_composite=False))
+    states.append(client_manager.publish(include_composite=False))
+    states.append(group_manager.publish())
+    # new client_scopes are not yet created, we need setup_new_links=False.
+    states.append(default_default_client_scope_manager.publish(setup_new_links=False))
+    states.append(default_optional_client_scope_manager.publish(setup_new_links=False))
+    states.append(client_scope_manager.publish(include_scope_mappings=False))
+
+    # ---------------------------------
     # Pass 2, resolve circular dependencies
-    # Setup composite roles
-    creation_state = client_manager.publish(include_composite=True)
-    state = state or creation_state
+    states.append(realm_res.publish(minimal_representation=True))
+    states.append(realm_role_manager.publish(include_composite=True))
+    states.append(client_manager.publish(include_composite=True))
+    states.append(default_default_client_scope_manager.publish(setup_new_links=True))
+    states.append(default_optional_client_scope_manager.publish(setup_new_links=True))
+    states.append(client_scope_manager.publish(include_scope_mappings=True))
 
-    creation_state = realm_roles_manager.publish(include_composite=True)
-    state = state or creation_state
-
-    module.warn("returned changed/created/deleted status describes only IdentityProviders")
-    return state, "TODO-some-data"
+    return any(states), "TODO-some-data"
 
 
 def main():
