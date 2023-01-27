@@ -1,2 +1,2 @@
 kcapi==1.0.40
-keycloak-exporter-bot==0.0.10
+keycloak-exporter-bot==0.0.12

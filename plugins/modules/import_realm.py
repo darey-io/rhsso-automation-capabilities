@@ -67,8 +67,10 @@ records:
 """
 
 import os
+import json
 from ansible.module_utils.basic import AnsibleModule
 from kcapi import Keycloak, OpenID
+from kcfetcher.utils import normalize
 from kcloader.resource import \
     RealmResource, \
     AuthenticationFlowManager, \
@@ -94,11 +96,14 @@ def get_kc(server_instance):
 
 def run(module):
     datadir = module.params["datadir"]
-    realm_name = module.params["realm"]
+    realm_name_commandline = module.params["realm"]
     server_instance = module.params["server_instance"]
     keycloak_api, master_realm = get_kc(server_instance)
 
-    realm_filepath = os.path.join(datadir, f"{realm_name}/{realm_name}.json")  # often correct
+    normalized_realm_name = normalize(realm_name_commandline)
+    realm_filepath = os.path.join(datadir, f"{normalized_realm_name}/{normalized_realm_name}.json")  # often correct
+    with open(realm_filepath) as ff:\
+        realm_name = json.load(ff)["realm"]
     realm_res = RealmResource({
         'path': realm_filepath,
         # 'name': '',
