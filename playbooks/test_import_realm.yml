@@ -5,7 +5,7 @@
   vars:
     # list of dicts where each dict holds data about one target KC
     kc:
-      url: https://172.17.0.2:8443/
+      url: http://172.17.0.2:8080/
       username: admin
       password: admin
   environment:
@@ -13,7 +13,7 @@
   tasks:
     - name: Import one realm
       mynamespace.rhsso_automation_capabilities.import_realm:
-        datadir: ../tests/data/kcfetcher-0.0.6
+        datadir: ../tests/data/kcfetcher-0.0.8
         realm: ci0-realm
         # TODO server_instance could be read from environ
         server_instance: "{{ kc }}"
